@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SENDER
+  TRAVELER
+  BOTH
+  ADMIN
+}
+
+enum TripStatus {
+  DRAFT
+  PUBLISHED
+  FULL
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingStatus {
+  PENDING_TRAVELER_ACCEPTANCE
+  PACKAGE_ACCEPTED
+  WEIGHT_VERIFIED
+  PAYMENT_AUTHORIZED
+  DELIVERY_PASS_GENERATED
+  IN_TRANSIT
+  ARRIVED
+  RECIPIENT_VERIFIED
+  DELIVERED
+  CANCELLED
+  DISPUTED
+}
+
+enum SecurityLevel {
+  BASIC
+  ENHANCED
+  MAXIMUM
+}
+
+enum PaymentStatus {
+  AUTHORIZED
+  CAPTURED
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model User {
+  id               String   @id @default(cuid())
+  supabaseId       String   @unique
+  fullName         String
+  email            String?  @unique
+  phone            String?  @unique
+  role             UserRole @default(SENDER)
+  profilePhoto     String?
+  city             String?
+  country          String?
+  isEmailVerified  Boolean  @default(false)
+  isPhoneVerified  Boolean  @default(false)
+  isIdVerified     Boolean  @default(false)
+  trustScore       Int      @default(0)
+  ratingAverage    Float    @default(0)
+  completedTrips   Int      @default(0)
+  isSuspended      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tripsAsTraveler   Trip[]    @relation("TravelerTrips")
+  bookingsAsSender  Booking[] @relation("SenderBookings")
+  bookingsAsTraveler Booking[] @relation("TravelerBookings")
+  sentMessages      Message[] @relation("SentMessages")
+  receivedMessages  Message[] @relation("ReceivedMessages")
+  reviewsGiven      Review[]  @relation("ReviewsGiven")
+  reviewsReceived   Review[]  @relation("ReviewsReceived")
+  disputesOpened    Dispute[]
+
+  @@map("users")
+}
+
+model Trip {
+  id                  String     @id @default(cuid())
+  travelerId          String
+  traveler            User       @relation("TravelerTrips", fields: [travelerId], references: [id])
+  originCity          String
+  originCountry       String
+  destinationCity     String
+  destinationCountry  String
+  departureDate       DateTime
+  arrivalDate         DateTime
+  airline             String?
+  availableWeightLbs  Float
+  pricePerLb          Float
+  pickupInstructions  String?
+  dropoffInstructions String?
+  allowedItemTypes    String[]
+  status              TripStatus @default(DRAFT)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  bookings Booking[]
+
+  @@map("trips")
+}
+
+model Booking {
+  id                      String        @id @default(cuid())
+  bookingCode             String        @unique @default(cuid())
+  senderId                String
+  sender                  User          @relation("SenderBookings", fields: [senderId], references: [id])
+  travelerId              String
+  traveler                User          @relation("TravelerBookings", fields: [travelerId], references: [id])
+  tripId                  String
+  trip                    Trip          @relation(fields: [tripId], references: [id])
+  estimatedWeightLbs      Float
+  verifiedWeightLbs       Float?
+  pricePerLb              Float
+  estimatedTotal          Float
+  finalTotal              Float?
+  serviceFee              Float
+  recipientName           String
+  recipientPhone          String?
+  recipientCity           String?
+  packageDescription      String?
+  declaredValue           Float?
+  pickupPreference        String?
+  securityLevel           SecurityLevel @default(BASIC)
+  requiresIdCheck         Boolean       @default(false)
+  secretQuestion          String?
+  secretAnswerHash        String?
+  pickupCodeHash          String?
+  qrToken                 String?
+  deliveryPassGeneratedAt DateTime?
+  status                  BookingStatus @default(PENDING_TRAVELER_ACCEPTANCE)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  packagePhotos PackagePhoto[]
+  payment       Payment?
+  messages      Message[]
+  reviews       Review[]
+  deliveryProof DeliveryProof?
+  dispute       Dispute?
+
+  @@map("bookings")
+}
+
+model PackagePhoto {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  url       String
+  createdAt DateTime @default(now())
+
+  @@map("package_photos")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  bookingId             String        @unique
+  booking               Booking       @relation(fields: [bookingId], references: [id])
+  stripePaymentIntentId String?
+  stripeTransferId      String?
+  amountAuthorized      Float
+  amountCaptured        Float?
+  platformFee           Float
+  travelerPayout        Float
+  status                PaymentStatus @default(AUTHORIZED)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Message {
+  id            String    @id @default(cuid())
+  bookingId     String
+  booking       Booking   @relation(fields: [bookingId], references: [id])
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId    String
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  body          String
+  attachmentUrl String?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@map("messages")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  reviewerId String
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([bookingId, reviewerId])
+  @@map("reviews")
+}
+
+model DeliveryProof {
+  id                    String    @id @default(cuid())
+  bookingId             String    @unique
+  booking               Booking   @relation(fields: [bookingId], references: [id])
+  recipientSignatureUrl String?
+  deliveryPhotoUrl      String?
+  codeVerified          Boolean   @default(false)
+  idVerified            Boolean   @default(false)
+  deliveredAt           DateTime?
+  createdAt             DateTime  @default(now())
+
+  @@map("delivery_proofs")
+}
+
+model Dispute {
+  id          String        @id @default(cuid())
+  bookingId   String        @unique
+  booking     Booking       @relation(fields: [bookingId], references: [id])
+  openedById  String
+  openedBy    User          @relation(fields: [openedById], references: [id])
+  reason      String
+  description String?
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("disputes")
+}
