@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-primary flex flex-col items-center justify-center px-6">
       <div className="mb-10 text-center">
-        <h1 className="text-3xl font-bold text-white">GambiaBridge</h1>
+        <h1 className="text-3xl font-bold text-white">Jaypai</h1>
         <p className="text-white/80 mt-2 text-sm">Send packages with trusted travelers.</p>
       </div>
 

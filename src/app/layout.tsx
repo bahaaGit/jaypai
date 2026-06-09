@@ -8,7 +8,7 @@ const geistSans = Geist({
 })
 
 export const metadata: Metadata = {
-  title: "GambiaBridge — Send packages with trusted travelers",
+  title: "Jaypai — Send packages with trusted travelers",
   description: "Find trusted travelers flying where your package needs to go.",
   manifest: "/manifest.json",
 }

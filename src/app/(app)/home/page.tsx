@@ -8,7 +8,7 @@ export default function HomePage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-12 pb-4 bg-white">
         <div>
-          <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">GambiaBridge</p>
+          <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">Jaypai</p>
           <h1 className="text-xl font-bold text-foreground mt-0.5">
             Send packages<br />with trusted<br />travelers.
           </h1>
