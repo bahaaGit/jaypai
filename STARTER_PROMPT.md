@@ -132,6 +132,20 @@ Branches: `main` (prod), `develop` (staging). Add `.env.example`.
    preview env vars via CLI, pass an empty branch arg: `vercel env add NAME
    preview "" --value ... --yes`. Service worker only registers in production,
    so test PWA on the deployed URL or `build && start`, never `dev`.
+9. **Supabase direct DB host is IPv6-only** (`db.<ref>.supabase.co` has only an
+   AAAA record). On IPv4-only networks (most home/CI), connections fail with
+   P1001. Use the session pooler instead:
+   `postgresql://postgres.<ref>:<password>@aws-X-<region>.pooler.supabase.com:5432/postgres`
+   (find region in dashboard → Connect; test `aws-0` vs `aws-1`).
+10. **Prisma 7 client engine requires a driver adapter at runtime** — builds
+    fail with "requires either adapter or accelerateUrl". Install
+    `@prisma/adapter-pg` and construct:
+    `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`.
+11. **Supabase auth redirect URLs:** set Site URL + add
+    `https://<your-domain>/auth/callback` (and localhost) under Auth →
+    URL Configuration, or email confirmation links point at localhost:3000.
+    Phone OTP sign-in silently fails until an SMS provider (e.g. Twilio) is
+    configured under Auth → Providers → Phone.
 
 ---
 
