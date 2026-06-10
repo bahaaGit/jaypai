@@ -51,6 +51,40 @@ test("protected routes redirect unauthenticated users to login", async ({ page }
   }
 })
 
+test("trips API is public and returns published trips", async ({ request }) => {
+  const res = await request.get("/api/trips")
+  expect(res.status()).toBe(200)
+  const body = await res.json()
+  expect(Array.isArray(body.trips)).toBe(true)
+  expect(body.count).toBe(body.trips.length)
+})
+
+test("trips API filters by destination", async ({ request }) => {
+  const res = await request.get("/api/trips?to=Banjul")
+  expect(res.status()).toBe(200)
+  const body = await res.json()
+  for (const t of body.trips) {
+    expect(`${t.destinationCity} ${t.destinationCountry}`).toContain("Banjul")
+  }
+})
+
+test("trips API rejects invalid params", async ({ request }) => {
+  const res = await request.get("/api/trips?date=not-a-date")
+  expect(res.status()).toBe(400)
+  const res2 = await request.get("/api/trips?maxPrice=-3")
+  expect(res2.status()).toBe(400)
+})
+
+test("trip detail API 404s for unknown trip", async ({ request }) => {
+  const res = await request.get("/api/trips/does-not-exist")
+  expect(res.status()).toBe(404)
+})
+
+test("trip pages require auth", async ({ page }) => {
+  await page.goto("/trips/search")
+  await expect(page).toHaveURL(/\/login/)
+})
+
 test("users/me API requires auth", async ({ request }) => {
   const res = await request.get("/api/users/me")
   expect(res.status()).toBe(401)
