@@ -1,8 +1,28 @@
-export default function ProfilePage() {
+import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
+import { ProfileView } from "./ProfileView"
+
+export default async function ProfilePage() {
+  const current = await getCurrentUser()
+  if (!current) redirect("/login")
+  if (!current.dbUser) redirect("/onboarding")
+
+  const u = current.dbUser
   return (
-    <div className="px-4 pt-12">
-      <h1 className="text-xl font-bold">Profile</h1>
-      <p className="text-muted-foreground text-sm mt-1">Your profile — coming in Phase 1.</p>
-    </div>
+    <ProfileView
+      user={{
+        fullName: u.fullName,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        city: u.city,
+        country: u.country,
+        trustScore: u.trustScore,
+        ratingAverage: u.ratingAverage,
+        completedTrips: u.completedTrips,
+        isEmailVerified: u.isEmailVerified,
+        isPhoneVerified: u.isPhoneVerified,
+      }}
+    />
   )
 }
