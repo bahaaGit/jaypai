@@ -134,6 +134,7 @@ model Booking {
   packageDescription      String?
   declaredValue           Float?
   pickupPreference        String?
+  pickupInstructions      String?
   securityLevel           SecurityLevel @default(BASIC)
   requiresIdCheck         Boolean       @default(false)
   secretQuestion          String?

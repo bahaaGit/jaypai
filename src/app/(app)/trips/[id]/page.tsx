@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
   Star,
@@ -11,6 +12,7 @@ import {
   Route,
 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +41,9 @@ export default async function TripDetailsPage({
     },
   })
   if (!trip) notFound()
+
+  const current = await getCurrentUser()
+  const isOwnTrip = current?.dbUser?.id === trip.travelerId
 
   const t = trip.traveler
   const firstName = t.fullName.split(/\s+/)[0]
@@ -138,15 +143,15 @@ export default async function TripDetailsPage({
       {/* Sticky CTA */}
       <div className="fixed bottom-16 left-0 right-0 border-t border-border bg-white p-4">
         <div className="max-w-sm mx-auto">
-          <Button
-            disabled
-            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-          >
-            Book This Trip
-          </Button>
-          <p className="mt-1.5 text-center text-xs text-muted-foreground">
-            Booking opens soon
-          </p>
+          {isOwnTrip ? (
+            <Button asChild variant="outline" className="w-full h-12 text-base font-semibold border-2">
+              <Link href="/trips/mine">Manage My Trips</Link>
+            </Button>
+          ) : (
+            <Button asChild className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+              <Link href={`/trips/${trip.id}/book`}>Book This Trip</Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>

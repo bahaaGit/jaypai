@@ -101,6 +101,22 @@ test("trip mutations require auth", async ({ request }) => {
   expect(del.status()).toBe(401)
 })
 
+test("bookings API requires auth", async ({ request }) => {
+  const list = await request.get("/api/bookings")
+  expect(list.status()).toBe(401)
+  const create = await request.post("/api/bookings", {
+    data: { tripId: "seed-trip-seattle", estimatedWeightLbs: 25 },
+  })
+  expect(create.status()).toBe(401)
+  const detail = await request.get("/api/bookings/nonexistent")
+  expect(detail.status()).toBe(401)
+})
+
+test("book page requires auth", async ({ page }) => {
+  await page.goto("/trips/seed-trip-seattle/book")
+  await expect(page).toHaveURL(/\/login/)
+})
+
 test("users/me API requires auth", async ({ request }) => {
   const res = await request.get("/api/users/me")
   expect(res.status()).toBe(401)
