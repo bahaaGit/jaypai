@@ -31,7 +31,11 @@ describe("TripCard", () => {
     expect(screen.getByText("80 lbs available")).toBeInTheDocument()
     expect(screen.getByText("$5 / lb")).toBeInTheDocument()
     expect(screen.getByText("4.9")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "View" })).toHaveAttribute("href", "/trips/t1")
+    expect(screen.getByText("View")).toBeInTheDocument()
+    // Whole card is the tap target
+    expect(
+      screen.getByRole("link", { name: "View trip Seattle to Banjul" })
+    ).toHaveAttribute("href", "/trips/t1")
   })
 
   it("shows 'New' for unrated travelers", () => {

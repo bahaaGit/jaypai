@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     icon: "/icons/icon-192.png",
     apple: "/icons/apple-touch-icon.png",
   },
+  other: {
+    // iOS standalone mode — without this, the home-screen icon can open
+    // as a regular Safari tab on some iOS versions.
+    "apple-mobile-web-app-capable": "yes",
+  },
 }
 
 export const viewport: Viewport = {

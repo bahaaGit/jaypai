@@ -41,8 +41,16 @@ export function initialsOf(name: string) {
 export function TripCard({ trip }: { trip: TripCardData }) {
   const t = trip.traveler
   return (
-    <Card className="rounded-xl border-border" data-testid="trip-card">
-      <CardContent className="p-4">
+    <Link
+      href={`/trips/${trip.id}`}
+      aria-label={`View trip ${trip.originCity} to ${trip.destinationCity}`}
+      className="block"
+    >
+      <Card
+        className="rounded-xl border-border transition-colors active:bg-muted/50"
+        data-testid="trip-card"
+      >
+        <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
             {initialsOf(t.fullName)}
@@ -78,14 +86,12 @@ export function TripCard({ trip }: { trip: TripCardData }) {
               ${trip.pricePerLb} / lb
             </span>
           </div>
-          <Link
-            href={`/trips/${trip.id}`}
-            className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white"
-          >
+          <span className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white">
             View
-          </Link>
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   )
 }
