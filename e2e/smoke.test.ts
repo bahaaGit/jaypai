@@ -12,8 +12,8 @@ test("unauthenticated root redirects to login", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/)
 })
 
-test("login page shows GambiaBridge branding", async ({ page }) => {
+test("login page shows Jaypai branding", async ({ page }) => {
   await page.goto("/login")
-  await expect(page.getByText("GambiaBridge")).toBeVisible()
+  await expect(page.getByText("Jaypai")).toBeVisible()
   await expect(page.getByText("Get Started")).toBeVisible()
 })
