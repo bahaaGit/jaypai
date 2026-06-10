@@ -1,7 +1,8 @@
 import Link from "next/link"
-import { SearchX, Search } from "lucide-react"
+import { SearchX, Search, Luggage } from "lucide-react"
 import { prisma } from "@/lib/prisma"
-import { parseTripSearchParams } from "@/lib/validations/trip"
+import { getCurrentUser } from "@/lib/auth"
+import { parseTripSearchParams, canPostTrips } from "@/lib/validations/trip"
 import { TripCard, type TripCardData } from "@/components/trips/TripCard"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SortSelect } from "./SortSelect"
@@ -77,15 +78,28 @@ export default async function TripsPage({
   })
 
   const title = to ? `Trips to ${to}` : from ? `Trips from ${from}` : "Available Trips"
+  const current = await getCurrentUser()
+  const isTraveler = current?.dbUser ? canPostTrips(current.dbUser.role) : false
 
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
         title={title}
         right={
-          <Link href="/trips/search" aria-label="New search">
-            <Search className="h-5 w-5 text-foreground" />
-          </Link>
+          <div className="flex items-center gap-4">
+            {isTraveler && (
+              <Link
+                href="/trips/mine"
+                aria-label="My trips"
+                className="flex items-center gap-1 text-xs font-medium text-primary"
+              >
+                <Luggage className="h-4 w-4" /> My Trips
+              </Link>
+            )}
+            <Link href="/trips/search" aria-label="New search">
+              <Search className="h-5 w-5 text-foreground" />
+            </Link>
+          </div>
         }
       />
       <div className="px-4 py-4 max-w-sm mx-auto">

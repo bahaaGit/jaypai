@@ -85,6 +85,22 @@ test("trip pages require auth", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/)
 })
 
+test("posting a trip requires auth", async ({ request }) => {
+  const res = await request.post("/api/trips", {
+    data: { originCity: "Seattle" },
+  })
+  expect(res.status()).toBe(401)
+})
+
+test("trip mutations require auth", async ({ request }) => {
+  const patch = await request.patch("/api/trips/seed-trip-seattle", {
+    data: { status: "CANCELLED" },
+  })
+  expect(patch.status()).toBe(401)
+  const del = await request.delete("/api/trips/seed-trip-seattle")
+  expect(del.status()).toBe(401)
+})
+
 test("users/me API requires auth", async ({ request }) => {
   const res = await request.get("/api/users/me")
   expect(res.status()).toBe(401)

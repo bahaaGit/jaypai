@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { parseTripSearchParams } from "@/lib/validations/trip"
+import { parseTripSearchParams, tripCreateSchema, canPostTrips } from "@/lib/validations/trip"
+import { getCurrentUser } from "@/lib/auth"
 import type { Prisma } from "@prisma/client"
 
 // Public: anyone can browse PUBLISHED upcoming trips.
@@ -75,4 +76,55 @@ export async function GET(request: Request) {
   })
 
   return NextResponse.json({ trips, count: trips.length })
+}
+
+// Travelers (or BOTH/ADMIN) can publish a trip.
+export async function POST(request: Request) {
+  const current = await getCurrentUser()
+  if (!current?.dbUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  if (!canPostTrips(current.dbUser.role)) {
+    return NextResponse.json(
+      { error: "Only travelers can post trips. Switch your account type in Profile." },
+      { status: 403 }
+    )
+  }
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+  }
+
+  const parsed = tripCreateSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    )
+  }
+
+  const d = parsed.data
+  const trip = await prisma.trip.create({
+    data: {
+      travelerId: current.dbUser.id,
+      originCity: d.originCity,
+      originCountry: d.originCountry,
+      destinationCity: d.destinationCity,
+      destinationCountry: d.destinationCountry,
+      departureDate: new Date(`${d.departureDate}T00:00:00Z`),
+      arrivalDate: new Date(`${d.arrivalDate}T00:00:00Z`),
+      airline: d.airline || null,
+      availableWeightLbs: d.availableWeightLbs,
+      pricePerLb: d.pricePerLb,
+      pickupInstructions: d.pickupInstructions || null,
+      dropoffInstructions: d.dropoffInstructions || null,
+      allowedItemTypes: d.allowedItemTypes,
+      status: "PUBLISHED",
+    },
+  })
+
+  return NextResponse.json({ trip }, { status: 201 })
 }
