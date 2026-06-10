@@ -11,11 +11,7 @@ jobs:
   # ── 1. Quality Gate ──────────────────────────────────────────────────
   quality:
     name: Quality Gate
-    runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -42,16 +38,16 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
 
   # ── 2. E2E Smoke Tests ───────────────────────────────────────────────
   e2e:
     name: E2E Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: quality
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +65,10 @@ jobs:
 
       - name: Run E2E smoke tests
         run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -81,7 +81,7 @@ jobs:
   # ── 3. Deploy (only after all tests pass) ────────────────────────────
   deploy:
     name: Deploy to Vercel
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [quality, e2e]
 
     steps:
