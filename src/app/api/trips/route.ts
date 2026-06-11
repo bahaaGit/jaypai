@@ -15,12 +15,13 @@ export async function GET(request: Request) {
     )
   }
 
-  const { from, to, date, sort, maxPrice, minWeight } = parsed.data
+  const { from, to, date, sort, type, maxPrice, minWeight } = parsed.data
 
   const where: Prisma.TripWhereInput = {
     status: "PUBLISHED",
     availableWeightLbs: { gt: 0, ...(minWeight && { gte: minWeight }) },
     departureDate: { gte: date ? new Date(`${date}T00:00:00Z`) : new Date() },
+    ...(type !== "all" && { tripType: type === "cargo" ? "CARGO" : "LUGGAGE" }),
     ...(maxPrice && { pricePerLb: { lte: maxPrice } }),
     ...(from && {
       OR: [
@@ -61,6 +62,9 @@ export async function GET(request: Request) {
       arrivalDate: true,
       availableWeightLbs: true,
       pricePerLb: true,
+      tripType: true,
+      containerSize: true,
+      flatPrice: true,
       airline: true,
       traveler: {
         select: {
@@ -107,9 +111,19 @@ export async function POST(request: Request) {
   }
 
   const d = parsed.data
+  // Cargo trips are priced flat per container; derive an effective $/lb so
+  // downstream weight-based logic keeps working.
+  const pricePerLb =
+    d.tripType === "CARGO"
+      ? Math.max(0.01, Math.round((d.flatPrice! / d.availableWeightLbs) * 100) / 100)
+      : d.pricePerLb!
+
   const trip = await prisma.trip.create({
     data: {
       travelerId: current.dbUser.id,
+      tripType: d.tripType,
+      containerSize: d.tripType === "CARGO" ? d.containerSize : null,
+      flatPrice: d.tripType === "CARGO" ? d.flatPrice : null,
       originCity: d.originCity,
       originCountry: d.originCountry,
       destinationCity: d.destinationCity,
@@ -118,7 +132,7 @@ export async function POST(request: Request) {
       arrivalDate: new Date(`${d.arrivalDate}T00:00:00Z`),
       airline: d.airline || null,
       availableWeightLbs: d.availableWeightLbs,
-      pricePerLb: d.pricePerLb,
+      pricePerLb,
       pickupInstructions: d.pickupInstructions || null,
       dropoffInstructions: d.dropoffInstructions || null,
       allowedItemTypes: d.allowedItemTypes,

@@ -85,6 +85,9 @@ export default async function BookTripPage({
           pricePerLb: trip.pricePerLb,
           remainingLbs,
           allowedItemTypes: trip.allowedItemTypes,
+          tripType: trip.tripType,
+          containerSize: trip.containerSize,
+          flatPrice: trip.flatPrice,
           traveler: trip.traveler,
         }}
       />

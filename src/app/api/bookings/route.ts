@@ -69,11 +69,24 @@ export async function POST(request: Request) {
   }
 
   // Server-side pricing — never trust client amounts.
-  const { subtotal, serviceFee, total } = calculateTotal(
-    d.estimatedWeightLbs,
-    trip.pricePerLb
-  )
-  void subtotal
+  // Cargo: whole container at flat price; luggage: weight × $/lb.
+  const isCargo = trip.tripType === "CARGO"
+  let estimatedWeightLbs = d.estimatedWeightLbs
+  let serviceFee: number
+  let total: number
+  if (isCargo) {
+    if ((reserved._sum.estimatedWeightLbs ?? 0) > 0) {
+      return NextResponse.json({ error: "This container is already booked" }, { status: 409 })
+    }
+    estimatedWeightLbs = trip.availableWeightLbs
+    const flat = trip.flatPrice ?? trip.availableWeightLbs * trip.pricePerLb
+    serviceFee = Math.round(flat * 10) / 100
+    total = Math.round((flat + serviceFee) * 100) / 100
+  } else {
+    const calc = calculateTotal(d.estimatedWeightLbs, trip.pricePerLb)
+    serviceFee = calc.serviceFee
+    total = calc.total
+  }
 
   const description = d.packageDescription
     ? `${d.itemCategory}: ${d.packageDescription}`
@@ -89,7 +102,7 @@ export async function POST(request: Request) {
           senderId: current.dbUser.id,
           travelerId: trip.travelerId,
           tripId: trip.id,
-          estimatedWeightLbs: d.estimatedWeightLbs,
+          estimatedWeightLbs,
           pricePerLb: trip.pricePerLb,
           estimatedTotal: total,
           serviceFee,

@@ -75,6 +75,21 @@ test("trips API rejects invalid params", async ({ request }) => {
   expect(res2.status()).toBe(400)
 })
 
+test("trips API filters by cargo type", async ({ request }) => {
+  const res = await request.get("/api/trips?type=cargo")
+  expect(res.status()).toBe(200)
+  const body = await res.json()
+  for (const t of body.trips) {
+    expect(t.tripType).toBe("CARGO")
+    expect(t.containerSize).toBeTruthy()
+    expect(t.flatPrice).toBeGreaterThan(0)
+  }
+  const luggage = await request.get("/api/trips?type=luggage")
+  for (const t of (await luggage.json()).trips) {
+    expect(t.tripType).toBe("LUGGAGE")
+  }
+})
+
 test("trip detail API 404s for unknown trip", async ({ request }) => {
   const res = await request.get("/api/trips/does-not-exist")
   expect(res.status()).toBe(404)

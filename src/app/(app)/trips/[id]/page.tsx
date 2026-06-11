@@ -48,9 +48,18 @@ export default async function TripDetailsPage({
   const t = trip.traveler
   const firstName = t.fullName.split(/\s+/)[0]
 
+  const isCargo = trip.tripType === "CARGO"
   const infoRows = [
-    { icon: Scale, label: "Available Space", value: `${trip.availableWeightLbs} lbs` },
-    { icon: DollarSign, label: "Price per lb", value: `$${trip.pricePerLb.toFixed(2)}` },
+    ...(isCargo
+      ? [
+          { icon: Scale, label: "Container", value: `1 × ${trip.containerSize}` },
+          { icon: Scale, label: "Capacity", value: `${trip.availableWeightLbs.toLocaleString()} lbs` },
+          { icon: DollarSign, label: "Container Price", value: `$${trip.flatPrice?.toLocaleString()}` },
+        ]
+      : [
+          { icon: Scale, label: "Available Space", value: `${trip.availableWeightLbs} lbs` },
+          { icon: DollarSign, label: "Price per lb", value: `$${trip.pricePerLb.toFixed(2)}` },
+        ]),
     ...(trip.pickupInstructions
       ? [{ icon: MapPin, label: "Pickup Location", value: trip.pickupInstructions }]
       : []),
@@ -58,7 +67,7 @@ export default async function TripDetailsPage({
       ? [{ icon: Flag, label: "Drop-off Location", value: trip.dropoffInstructions }]
       : []),
     ...(trip.airline ? [{ icon: Plane, label: "Airline", value: trip.airline }] : []),
-    { icon: Route, label: "Trip Type", value: "One-way" },
+    { icon: Route, label: "Trip Type", value: isCargo ? "Cargo · One-way" : "Luggage · One-way" },
   ]
 
   return (

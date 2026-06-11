@@ -21,6 +21,7 @@ export default function TripSearchPage() {
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [date, setDate] = useState("")
+  const [type, setType] = useState("all")
   const [maxPrice, setMaxPrice] = useState("")
   const [recent, setRecent] = useState<RecentSearch[]>([])
 
@@ -40,6 +41,7 @@ export default function TripSearchPage() {
     if (f.trim()) params.set("from", f.trim())
     if (t.trim()) params.set("to", t.trim())
     if (date) params.set("date", date)
+    if (type !== "all") params.set("type", type)
     if (maxPrice) params.set("maxPrice", maxPrice)
 
     if (f.trim() || t.trim()) {
@@ -100,6 +102,20 @@ export default function TripSearchPage() {
             />
           </div>
           {!date && <p className="text-xs text-muted-foreground">Any date</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="type">Type</Label>
+          <select
+            id="type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="h-12 w-full rounded-md border border-input bg-white px-3 text-sm text-foreground"
+          >
+            <option value="all">All (Luggage &amp; Cargo)</option>
+            <option value="luggage">Luggage</option>
+            <option value="cargo">Cargo (Containers)</option>
+          </select>
         </div>
 
         <div className="space-y-1.5">

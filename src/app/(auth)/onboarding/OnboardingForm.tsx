@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Package, Plane, Repeat, Check } from "lucide-react"
+import { Package, Plane, Repeat, Check, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +23,12 @@ const OPTIONS: { role: Role; title: string; desc: string; icon: typeof Package }
     title: "I travel and want to deliver",
     desc: "Traveler",
     icon: Plane,
+  },
+  {
+    role: "SHIPPER",
+    title: "I'm a business / Freight forwarder",
+    desc: "Shipper — containers & cargo",
+    icon: Building2,
   },
   {
     role: "BOTH",

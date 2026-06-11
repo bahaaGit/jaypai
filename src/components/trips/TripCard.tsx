@@ -12,6 +12,9 @@ export interface TripCardData {
   arrivalDate: string
   availableWeightLbs: number
   pricePerLb: number
+  tripType?: string
+  containerSize?: string | null
+  flatPrice?: number | null
   traveler: {
     fullName: string
     ratingAverage: number
@@ -40,6 +43,7 @@ export function initialsOf(name: string) {
 
 export function TripCard({ trip }: { trip: TripCardData }) {
   const t = trip.traveler
+  const isCargo = trip.tripType === "CARGO"
   return (
     <Link
       href={`/trips/${trip.id}`}
@@ -66,6 +70,15 @@ export function TripCard({ trip }: { trip: TripCardData }) {
               {t.completedTrips > 0 && <span>· {t.completedTrips} trips</span>}
             </p>
           </div>
+          <span
+            className={
+              isCargo
+                ? "rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
+                : "rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+            }
+          >
+            {isCargo ? "Cargo" : "Luggage"}
+          </span>
         </div>
 
         <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -79,12 +92,25 @@ export function TripCard({ trip }: { trip: TripCardData }) {
 
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-              {trip.availableWeightLbs} lbs available
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              ${trip.pricePerLb} / lb
-            </span>
+            {isCargo ? (
+              <>
+                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                  1 × {trip.containerSize} Container
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  ${trip.flatPrice?.toLocaleString()}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                  {trip.availableWeightLbs} lbs available
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  ${trip.pricePerLb} / lb
+                </span>
+              </>
+            )}
           </div>
           <span className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white">
             View

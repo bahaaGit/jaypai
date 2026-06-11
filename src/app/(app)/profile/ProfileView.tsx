@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 const ROLE_LABEL: Record<string, string> = {
   SENDER: "Sender",
   TRAVELER: "Traveler",
+  SHIPPER: "Shipper",
   BOTH: "Sender & Traveler",
   ADMIN: "Admin",
 }

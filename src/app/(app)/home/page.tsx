@@ -1,8 +1,12 @@
 import Link from "next/link"
 import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getCurrentUser } from "@/lib/auth"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const current = await getCurrentUser()
+  const firstName = current?.dbUser?.fullName.split(/\s+/)[0]
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -10,8 +14,11 @@ export default function HomePage() {
         <div>
           <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">Jaypai</p>
           <h1 className="text-xl font-bold text-foreground mt-0.5">
-            Send packages<br />with trusted<br />travelers.
+            {firstName ? <>Hello, {firstName} 👋</> : "Welcome"}
           </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Where would you like to send a package?
+          </p>
         </div>
       </div>
 

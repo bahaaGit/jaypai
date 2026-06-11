@@ -9,8 +9,14 @@ datasource db {
 enum UserRole {
   SENDER
   TRAVELER
+  SHIPPER
   BOTH
   ADMIN
+}
+
+enum TripType {
+  LUGGAGE
+  CARGO
 }
 
 enum TripStatus {
@@ -99,6 +105,9 @@ model Trip {
   departureDate       DateTime
   arrivalDate         DateTime
   airline             String?
+  tripType            TripType   @default(LUGGAGE)
+  containerSize       String?
+  flatPrice           Float?
   availableWeightLbs  Float
   pricePerLb          Float
   pickupInstructions  String?

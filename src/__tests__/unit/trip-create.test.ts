@@ -76,10 +76,48 @@ describe("tripUpdateSchema", () => {
 })
 
 describe("canPostTrips", () => {
-  it("allows TRAVELER, BOTH, ADMIN; blocks SENDER", () => {
+  it("allows TRAVELER, SHIPPER, BOTH, ADMIN; blocks SENDER", () => {
     expect(canPostTrips("TRAVELER")).toBe(true)
+    expect(canPostTrips("SHIPPER")).toBe(true)
     expect(canPostTrips("BOTH")).toBe(true)
     expect(canPostTrips("ADMIN")).toBe(true)
     expect(canPostTrips("SENDER")).toBe(false)
+  })
+})
+
+describe("cargo trips", () => {
+  const cargo = {
+    ...valid,
+    tripType: "CARGO",
+    containerSize: "40ft",
+    flatPrice: "950",
+    availableWeightLbs: "44000",
+    pricePerLb: undefined,
+  }
+
+  it("accepts a valid cargo trip without pricePerLb", () => {
+    const r = tripCreateSchema.safeParse(cargo)
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.flatPrice).toBe(950)
+      expect(r.data.availableWeightLbs).toBe(44000)
+    }
+  })
+
+  it("requires containerSize and flatPrice for cargo", () => {
+    expect(tripCreateSchema.safeParse({ ...cargo, containerSize: undefined }).success).toBe(false)
+    expect(tripCreateSchema.safeParse({ ...cargo, flatPrice: undefined }).success).toBe(false)
+  })
+
+  it("rejects unknown container sizes", () => {
+    expect(tripCreateSchema.safeParse({ ...cargo, containerSize: "53ft" }).success).toBe(false)
+  })
+
+  it("cargo capacity can exceed the 200 lb luggage cap", () => {
+    expect(tripCreateSchema.safeParse({ ...cargo, availableWeightLbs: "44000" }).success).toBe(true)
+    // but luggage cannot
+    expect(
+      tripCreateSchema.safeParse({ ...valid, availableWeightLbs: "44000" }).success
+    ).toBe(false)
   })
 })

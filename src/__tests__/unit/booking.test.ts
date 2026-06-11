@@ -36,7 +36,9 @@ describe("bookingCreateSchema", () => {
   it("rejects zero, negative and absurd weights", () => {
     expect(bookingCreateSchema.safeParse({ ...valid, estimatedWeightLbs: "0" }).success).toBe(false)
     expect(bookingCreateSchema.safeParse({ ...valid, estimatedWeightLbs: "-5" }).success).toBe(false)
-    expect(bookingCreateSchema.safeParse({ ...valid, estimatedWeightLbs: "500" }).success).toBe(false)
+    // cargo containers go up to 60,000 lbs; beyond that is rejected
+    expect(bookingCreateSchema.safeParse({ ...valid, estimatedWeightLbs: "70000" }).success).toBe(false)
+    expect(bookingCreateSchema.safeParse({ ...valid, estimatedWeightLbs: "44000" }).success).toBe(true)
   })
 
   it("rejects unknown categories and pickup preferences", () => {

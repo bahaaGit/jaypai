@@ -19,14 +19,15 @@ export default async function TripsPage({
     if (typeof v === "string" && v) usp.set(k, v)
   }
   const parsed = parseTripSearchParams(usp)
-  const { from, to, date, sort, maxPrice, minWeight } = parsed.success
+  const { from, to, date, sort, type, maxPrice, minWeight } = parsed.success
     ? parsed.data
-    : { sort: "soonest" as const, from: undefined, to: undefined, date: undefined, maxPrice: undefined, minWeight: undefined }
+    : { sort: "soonest" as const, type: "all" as const, from: undefined, to: undefined, date: undefined, maxPrice: undefined, minWeight: undefined }
 
   const where: Prisma.TripWhereInput = {
     status: "PUBLISHED",
     availableWeightLbs: { gt: 0, ...(minWeight && { gte: minWeight }) },
     departureDate: { gte: date ? new Date(`${date}T00:00:00Z`) : new Date() },
+    ...(type !== "all" && { tripType: type === "cargo" ? ("CARGO" as const) : ("LUGGAGE" as const) }),
     ...(maxPrice && { pricePerLb: { lte: maxPrice } }),
     ...(from && {
       OR: [
@@ -65,6 +66,9 @@ export default async function TripsPage({
       arrivalDate: true,
       availableWeightLbs: true,
       pricePerLb: true,
+      tripType: true,
+      containerSize: true,
+      flatPrice: true,
       traveler: {
         select: {
           fullName: true,

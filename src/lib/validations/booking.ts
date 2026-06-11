@@ -14,7 +14,7 @@ export const bookingCreateSchema = z.object({
   estimatedWeightLbs: z.coerce
     .number({ message: "Enter the package weight" })
     .min(1, "Minimum 1 lb")
-    .max(200, "Maximum 200 lbs"),
+    .max(60000, "Maximum 60,000 lbs"), // luggage capped server-side by trip capacity; cargo books full container
   itemCategory: z.enum(PACKAGE_TYPES, { message: "Choose an item category" }),
   packageDescription: z.string().trim().max(500).optional().or(z.literal("")),
   declaredValue: z.coerce.number().min(0).max(50000).optional(),

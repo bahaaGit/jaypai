@@ -10,9 +10,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { PACKAGE_TYPES, tripCreateSchema } from "@/lib/validations/trip"
+import { PACKAGE_TYPES, CONTAINER_SIZES, tripCreateSchema } from "@/lib/validations/trip"
+import { User as UserIcon, Container } from "lucide-react"
 
 export interface TripFormValues {
+  tripType: string
+  containerSize: string
+  flatPrice: string
   originCity: string
   originCountry: string
   destinationCity: string
@@ -28,6 +32,9 @@ export interface TripFormValues {
 }
 
 const EMPTY: TripFormValues = {
+  tripType: "LUGGAGE",
+  containerSize: "",
+  flatPrice: "",
   originCity: "",
   originCountry: "",
   destinationCity: "",
@@ -42,7 +49,22 @@ const EMPTY: TripFormValues = {
   allowedItemTypes: ["Clothes"],
 }
 
-const STEPS = ["Route", "Details", "Review"] as const
+const STEPS = ["Type", "Route", "Details", "Review"] as const
+
+const POSTER_TYPES = [
+  {
+    value: "LUGGAGE",
+    title: "Individual Traveler",
+    desc: "I'm a person traveling with luggage space",
+    icon: UserIcon,
+  },
+  {
+    value: "CARGO",
+    title: "Shipping Carrier",
+    desc: "I'm sending goods in containers or cargo",
+    icon: Container,
+  },
+] as const
 
 export function TripForm({
   initial,
@@ -69,8 +91,16 @@ export function TripForm({
         : [...prev.allowedItemTypes, type],
     }))
 
+  // Strip empty optional numerics so zod coercion doesn't turn "" into 0.
+  const toPayload = (values: TripFormValues) => ({
+    ...values,
+    pricePerLb: values.pricePerLb === "" ? undefined : values.pricePerLb,
+    flatPrice: values.flatPrice === "" ? undefined : values.flatPrice,
+    containerSize: values.containerSize === "" ? undefined : values.containerSize,
+  })
+
   const validate = () => {
-    const parsed = tripCreateSchema.safeParse(v)
+    const parsed = tripCreateSchema.safeParse(toPayload(v))
     if (parsed.success) {
       setErrors({})
       return true
@@ -84,12 +114,22 @@ export function TripForm({
   }
 
   const step1Valid = () => {
-    if (!validateAnd(["originCity", "originCountry", "destinationCity", "destinationCountry", "departureDate", "arrivalDate", "availableWeightLbs", "pricePerLb"])) return false
-    return true
+    return validateAnd([
+      "originCity",
+      "originCountry",
+      "destinationCity",
+      "destinationCountry",
+      "departureDate",
+      "arrivalDate",
+      "availableWeightLbs",
+      "pricePerLb",
+      "containerSize",
+      "flatPrice",
+    ])
   }
 
   const validateAnd = (fields: string[]) => {
-    const parsed = tripCreateSchema.safeParse(v)
+    const parsed = tripCreateSchema.safeParse(toPayload(v))
     if (parsed.success) {
       setErrors({})
       return true
@@ -104,7 +144,7 @@ export function TripForm({
 
   const submit = async () => {
     if (!validate()) {
-      setStep(0)
+      setStep(1)
       return
     }
     setServerError(null)
@@ -112,7 +152,7 @@ export function TripForm({
     const res = await fetch(tripId ? `/api/trips/${tripId}` : "/api/trips", {
       method: tripId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(v),
+      body: JSON.stringify(toPayload(v)),
     })
     setBusy(false)
     if (!res.ok) {
@@ -165,6 +205,55 @@ export function TripForm({
 
       {step === 0 && (
         <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Who are you posting as?</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              This helps us show your trip to the right senders.
+            </p>
+          </div>
+          <div className="space-y-3" role="radiogroup" aria-label="Posting as">
+            {POSTER_TYPES.map(({ value, title, desc, icon: Icon }) => {
+              const selected = v.tripType === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => set("tripType", value)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border-2 bg-white p-4 text-left",
+                    selected ? "border-primary" : "border-border"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
+                      selected ? "bg-primary text-white" : "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  {selected && <Check className="h-5 w-5 text-primary" />}
+                </button>
+              )
+            })}
+          </div>
+          <Button
+            onClick={() => setStep(1)}
+            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+          >
+            Continue
+          </Button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="originCity">From — City</Label>
@@ -204,26 +293,70 @@ export function TripForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="availableWeightLbs">Available Space (lbs)</Label>
-              <Input id="availableWeightLbs" type="number" inputMode="numeric" min="1" max="200" placeholder="80" className="h-12 bg-white mt-1.5" value={v.availableWeightLbs} onChange={(e) => set("availableWeightLbs", e.target.value)} />
-              {err("availableWeightLbs")}
+          {v.tripType === "CARGO" ? (
+            <>
+              <div>
+                <Label>Container Size</Label>
+                <div className="mt-2 flex gap-2">
+                  {CONTAINER_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      aria-pressed={v.containerSize === size}
+                      onClick={() => set("containerSize", size)}
+                      className={cn(
+                        "flex-1 rounded-xl border-2 py-3 text-sm font-semibold",
+                        v.containerSize === size
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border bg-white text-muted-foreground"
+                      )}
+                    >
+                      {size} Container
+                    </button>
+                  ))}
+                </div>
+                {err("containerSize")}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="flatPrice">Container Price ($)</Label>
+                  <Input id="flatPrice" type="number" inputMode="decimal" min="50" placeholder="950" className="h-12 bg-white mt-1.5" value={v.flatPrice} onChange={(e) => set("flatPrice", e.target.value)} />
+                  {err("flatPrice")}
+                </div>
+                <div>
+                  <Label htmlFor="availableWeightLbs">Capacity (lbs)</Label>
+                  <Input id="availableWeightLbs" type="number" inputMode="numeric" min="1" placeholder="44000" className="h-12 bg-white mt-1.5" value={v.availableWeightLbs} onChange={(e) => set("availableWeightLbs", e.target.value)} />
+                  {err("availableWeightLbs")}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="availableWeightLbs">Available Space (lbs)</Label>
+                <Input id="availableWeightLbs" type="number" inputMode="numeric" min="1" max="200" placeholder="80" className="h-12 bg-white mt-1.5" value={v.availableWeightLbs} onChange={(e) => set("availableWeightLbs", e.target.value)} />
+                {err("availableWeightLbs")}
+              </div>
+              <div>
+                <Label htmlFor="pricePerLb">Price per lb ($)</Label>
+                <Input id="pricePerLb" type="number" inputMode="decimal" step="0.5" min="0.5" placeholder="5.00" className="h-12 bg-white mt-1.5" value={v.pricePerLb} onChange={(e) => set("pricePerLb", e.target.value)} />
+                {err("pricePerLb")}
+              </div>
             </div>
-            <div>
-              <Label htmlFor="pricePerLb">Price per lb ($)</Label>
-              <Input id="pricePerLb" type="number" inputMode="decimal" step="0.5" min="0.5" placeholder="5.00" className="h-12 bg-white mt-1.5" value={v.pricePerLb} onChange={(e) => set("pricePerLb", e.target.value)} />
-              {err("pricePerLb")}
-            </div>
-          </div>
+          )}
 
-          <Button onClick={() => step1Valid() && setStep(1)} className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
-            Continue
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setStep(0)} className="flex-1 h-12 border-2 font-semibold">
+              Back
+            </Button>
+            <Button onClick={() => step1Valid() && setStep(2)} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+              Continue
+            </Button>
+          </div>
         </div>
       )}
 
-      {step === 1 && (
+      {step === 2 && (
         <div className="space-y-4">
           <div>
             <Label htmlFor="airline">Airline (optional)</Label>
@@ -267,11 +400,11 @@ export function TripForm({
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setStep(0)} className="flex-1 h-12 border-2 font-semibold">
+            <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-12 border-2 font-semibold">
               Back
             </Button>
             <Button
-              onClick={() => validateAnd(["allowedItemTypes"]) && setStep(2)}
+              onClick={() => validateAnd(["allowedItemTypes"]) && setStep(3)}
               className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90"
             >
               Review Trip
@@ -280,7 +413,7 @@ export function TripForm({
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="space-y-4">
           <Card className="rounded-xl">
             <CardContent className="p-4 space-y-3">
@@ -290,9 +423,19 @@ export function TripForm({
                 <span>{v.destinationCity}</span>
               </div>
               <dl className="space-y-2 text-sm">
+                <div className="flex justify-between"><dt className="text-muted-foreground">Type</dt><dd className="font-medium">{v.tripType === "CARGO" ? `Cargo · ${v.containerSize} container` : "Luggage"}</dd></div>
                 <div className="flex justify-between"><dt className="text-muted-foreground">Dates</dt><dd className="font-medium">{v.departureDate} → {v.arrivalDate}</dd></div>
-                <div className="flex justify-between"><dt className="text-muted-foreground">Available space</dt><dd className="font-medium">{v.availableWeightLbs} lbs</dd></div>
-                <div className="flex justify-between"><dt className="text-muted-foreground">Price per lb</dt><dd className="font-medium">${v.pricePerLb}</dd></div>
+                {v.tripType === "CARGO" ? (
+                  <>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Capacity</dt><dd className="font-medium">{Number(v.availableWeightLbs).toLocaleString()} lbs</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Container price</dt><dd className="font-medium">${Number(v.flatPrice).toLocaleString()}</dd></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Available space</dt><dd className="font-medium">{v.availableWeightLbs} lbs</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Price per lb</dt><dd className="font-medium">${v.pricePerLb}</dd></div>
+                  </>
+                )}
                 {v.airline && <div className="flex justify-between"><dt className="text-muted-foreground">Airline</dt><dd className="font-medium">{v.airline}</dd></div>}
                 {v.pickupInstructions && <div className="flex justify-between gap-4"><dt className="text-muted-foreground flex-shrink-0">Pickup</dt><dd className="font-medium text-right">{v.pickupInstructions}</dd></div>}
                 {v.dropoffInstructions && <div className="flex justify-between gap-4"><dt className="text-muted-foreground flex-shrink-0">Drop-off</dt><dd className="font-medium text-right">{v.dropoffInstructions}</dd></div>}
@@ -311,7 +454,7 @@ export function TripForm({
           {serverError && <p className="text-sm text-destructive" role="alert">{serverError}</p>}
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-12 border-2 font-semibold">
+            <Button variant="outline" onClick={() => setStep(2)} className="flex-1 h-12 border-2 font-semibold">
               Back
             </Button>
             <Button onClick={submit} disabled={busy} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90">

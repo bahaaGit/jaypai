@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const ROLES = ["SENDER", "TRAVELER", "BOTH"] as const
+export const ROLES = ["SENDER", "TRAVELER", "SHIPPER", "BOTH"] as const
 
 // E.164-ish: +, country code, 7–14 more digits
 export const phoneSchema = z

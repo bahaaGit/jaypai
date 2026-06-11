@@ -43,6 +43,9 @@ export async function GET(
       departureDate: true,
       arrivalDate: true,
       airline: true,
+      tripType: true,
+      containerSize: true,
+      flatPrice: true,
       availableWeightLbs: true,
       pricePerLb: true,
       pickupInstructions: true,
@@ -101,6 +104,9 @@ export async function PATCH(
     "status" in d
       ? { status: d.status }
       : {
+          tripType: d.tripType,
+          containerSize: d.tripType === "CARGO" ? (d.containerSize ?? null) : null,
+          flatPrice: d.tripType === "CARGO" ? (d.flatPrice ?? null) : null,
           originCity: d.originCity,
           originCountry: d.originCountry,
           destinationCity: d.destinationCity,
@@ -109,7 +115,10 @@ export async function PATCH(
           arrivalDate: new Date(`${d.arrivalDate}T00:00:00Z`),
           airline: d.airline || null,
           availableWeightLbs: d.availableWeightLbs,
-          pricePerLb: d.pricePerLb,
+          pricePerLb:
+            d.tripType === "CARGO"
+              ? Math.max(0.01, Math.round((d.flatPrice! / d.availableWeightLbs) * 100) / 100)
+              : d.pricePerLb!,
           pickupInstructions: d.pickupInstructions || null,
           dropoffInstructions: d.dropoffInstructions || null,
           allowedItemTypes: d.allowedItemTypes,

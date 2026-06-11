@@ -21,6 +21,9 @@ export interface BookingTripInfo {
   pricePerLb: number
   remainingLbs: number
   allowedItemTypes: string[]
+  tripType: string
+  containerSize: string | null
+  flatPrice: number | null
   traveler: { fullName: string; ratingAverage: number }
 }
 
@@ -41,7 +44,15 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const { subtotal, serviceFee, total } = calculateTotal(weight, trip.pricePerLb)
+  const isCargo = trip.tripType === "CARGO"
+  // Cargo bookings take the whole container at the flat price.
+  const cargoSubtotal = trip.flatPrice ?? 0
+  const luggageCalc = calculateTotal(weight, trip.pricePerLb)
+  const subtotal = isCargo ? cargoSubtotal : luggageCalc.subtotal
+  const serviceFee = isCargo
+    ? Math.round(cargoSubtotal * 10) / 100
+    : luggageCalc.serviceFee
+  const total = isCargo ? Math.round((cargoSubtotal + serviceFee) * 100) / 100 : luggageCalc.total
 
   const bumpWeight = (delta: number) =>
     setWeight((w) => Math.min(Math.max(1, w + delta), trip.remainingLbs))
@@ -54,7 +65,7 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         tripId: trip.id,
-        estimatedWeightLbs: weight,
+        estimatedWeightLbs: isCargo ? trip.remainingLbs : weight,
         itemCategory,
         packageDescription: description,
         declaredValue: declaredValue ? Number(declaredValue) : undefined,
@@ -148,34 +159,48 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
 
       {step === 0 && (
         <div>
-          <h2 className="text-base font-semibold text-foreground">
-            How much do you want to send?
-          </h2>
-          <div className="mt-4 flex items-center justify-center gap-5">
-            <button
-              type="button"
-              onClick={() => bumpWeight(-1)}
-              aria-label="Decrease weight"
-              className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-border text-foreground active:bg-muted"
-            >
-              <Minus className="h-5 w-5" />
-            </button>
-            <div className="text-center">
-              <span className="text-3xl font-bold text-foreground">{weight}</span>
-              <span className="ml-1 text-sm text-muted-foreground">lbs</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => bumpWeight(1)}
-              aria-label="Increase weight"
-              className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-border text-foreground active:bg-muted"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Available: {trip.remainingLbs} lbs
-          </p>
+          {isCargo ? (
+            <>
+              <h2 className="text-base font-semibold text-foreground">
+                Book this container
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Cargo trips are booked as a full container — 1 × {trip.containerSize} with
+                up to {trip.remainingLbs.toLocaleString()} lbs capacity.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold text-foreground">
+                How much do you want to send?
+              </h2>
+              <div className="mt-4 flex items-center justify-center gap-5">
+                <button
+                  type="button"
+                  onClick={() => bumpWeight(-1)}
+                  aria-label="Decrease weight"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-border text-foreground active:bg-muted"
+                >
+                  <Minus className="h-5 w-5" />
+                </button>
+                <div className="text-center">
+                  <span className="text-3xl font-bold text-foreground">{weight}</span>
+                  <span className="ml-1 text-sm text-muted-foreground">lbs</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => bumpWeight(1)}
+                  aria-label="Increase weight"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-border text-foreground active:bg-muted"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Available: {trip.remainingLbs} lbs
+              </p>
+            </>
+          )}
 
           <Card className="mt-5 rounded-xl">
             <CardContent className="p-4">
@@ -183,7 +208,9 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
               <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">
-                    {weight} lbs × {formatCurrency(trip.pricePerLb)}
+                    {isCargo
+                      ? `1 × ${trip.containerSize} container`
+                      : `${weight} lbs × ${formatCurrency(trip.pricePerLb)}`}
                   </dt>
                   <dd className="font-medium">{formatCurrency(subtotal)}</dd>
                 </div>
@@ -371,14 +398,23 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
           <Card className="rounded-xl">
             <CardContent className="p-4">
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Weight (est.)</dt>
-                  <dd className="font-medium">{weight} lbs</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Price per lb</dt>
-                  <dd className="font-medium">{formatCurrency(trip.pricePerLb)}</dd>
-                </div>
+                {isCargo ? (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Container</dt>
+                    <dd className="font-medium">1 × {trip.containerSize}</dd>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Weight (est.)</dt>
+                      <dd className="font-medium">{weight} lbs</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Price per lb</dt>
+                      <dd className="font-medium">{formatCurrency(trip.pricePerLb)}</dd>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Subtotal</dt>
                   <dd className="font-medium">{formatCurrency(subtotal)}</dd>
@@ -410,8 +446,9 @@ export function BookingForm({ trip }: { trip: BookingTripInfo }) {
           </Card>
 
           <p className="text-xs text-muted-foreground text-center">
-            Final price is based on verified pickup weight. You&apos;ll pay after the
-            traveler accepts and verifies your package.
+            {isCargo
+              ? "Container bookings are a flat price. You'll pay after the carrier accepts your booking."
+              : "Final price is based on verified pickup weight. You'll pay after the traveler accepts and verifies your package."}
           </p>
 
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}

@@ -20,6 +20,9 @@ export default async function EditTripPage({
   }
 
   const initial: TripFormValues = {
+    tripType: trip.tripType,
+    containerSize: trip.containerSize ?? "",
+    flatPrice: trip.flatPrice != null ? String(trip.flatPrice) : "",
     originCity: trip.originCity,
     originCountry: trip.originCountry,
     destinationCity: trip.destinationCity,
